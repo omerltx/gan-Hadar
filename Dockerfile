@@ -8,16 +8,20 @@ RUN apt-get update \
 
 WORKDIR /app
 
-ENV NODE_ENV=production
 ENV YT_DLP_PATH=yt-dlp
 # Render sets PORT at runtime; default is for local/docker-compose only.
 ENV PORT=10000
 
+# Install all deps (including dev) for next build; NODE_ENV must not be "production" here.
 COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+RUN npm run build \
+  && npm prune --omit=dev \
+  && npm cache clean --force
+
+ENV NODE_ENV=production
 
 EXPOSE 10000
 
