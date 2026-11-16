@@ -9,8 +9,9 @@ RUN apt-get update \
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=43123
 ENV YT_DLP_PATH=yt-dlp
+# Render sets PORT at runtime; default is for local/docker-compose only.
+ENV PORT=10000
 
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -18,9 +19,9 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-EXPOSE 43123
+EXPOSE 10000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||43123)).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||10000)).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 CMD ["npm", "start"]
