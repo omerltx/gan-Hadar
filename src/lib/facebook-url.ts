@@ -53,3 +53,27 @@ export async function resolveFacebookUrl(input: string): Promise<string> {
 
   return trimmed;
 }
+
+/** Numeric Facebook video id from common URL shapes (/videos/<id>, ?v=<id>, /reel/<id>). */
+export function extractVideoId(raw: string): string | null {
+  try {
+    const u = new URL(raw);
+    const v = u.searchParams.get("v");
+    if (v && /^\d{6,}$/.test(v)) return v;
+    const m = u.pathname.match(/\/(?:videos|reel|reels)\/(?:[^/]+\/)?(\d{6,})/);
+    if (m) return m[1];
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+/** Alternative URLs yt-dlp can parse when the original page URL fails. */
+export function fallbackVideoUrls(resolvedUrl: string): string[] {
+  const id = extractVideoId(resolvedUrl);
+  if (!id) return [];
+  return [
+    `https://www.facebook.com/reel/${id}`,
+    `https://m.facebook.com/watch/?v=${id}`,
+  ].filter((u) => u !== resolvedUrl);
+}

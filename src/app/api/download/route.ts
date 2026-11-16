@@ -1,6 +1,10 @@
 import { createHash } from "crypto";
 import { NextResponse } from "next/server";
-import { isFacebookUrl, resolveFacebookUrl } from "@/lib/facebook-url";
+import {
+  fallbackVideoUrls,
+  isFacebookUrl,
+  resolveFacebookUrl,
+} from "@/lib/facebook-url";
 import {
   MSG_GENERIC_ERROR,
   MSG_INVALID_URL,
@@ -51,7 +55,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: MSG_INVALID_URL }, { status: 400 });
   }
 
-  const probe = await probeFacebookVideo(resolvedUrl);
+  let probe = await probeFacebookVideo(resolvedUrl);
+  if (!probe.ok) {
+    // Some page-video URLs (/<page>/videos/<id>) fail to parse; the same id often
+    // works as a reel or mobile watch URL.
+    for (const alt of fallbackVideoUrls(resolvedUrl)) {
+      const retry = await probeFacebookVideo(alt);
+      if (retry.ok) {
+        probe = retry;
+        resolvedUrl = alt;
+        break;
+      }
+    }
+  }
   if (!probe.ok) {
     return NextResponse.json({ error: MSG_UNSUPPORTED }, { status: 422 });
   }
