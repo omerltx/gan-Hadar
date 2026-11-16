@@ -86,3 +86,18 @@ For personal use only. Respect copyright and Facebook’s terms. Only download c
 4. הדביקי קישור לסרטון **ציבורי** מפייסבוק ולחצי **הורדה**.
 
 לפריסה בענן: העלי את הפרויקט עם ה־Dockerfile ל־Render / Railway / Fly.io, בלי צורך בסיסמאות פייסבוק.
+## Gallery storage (Cloudflare R2)
+
+Every successfully downloaded video is also saved to a gallery. Storage is a small
+Cloudflare Worker (`worker/storage-worker.js`, deployed as `gan-hadar-storage`) with an
+R2 binding `BUCKET` → bucket `gan-hadar-videos` and a secret `STORAGE_SECRET`.
+The Next.js server talks to it with the shared secret; the browser only sees `/api/videos`.
+
+Environment variables on the web service:
+
+- `STORAGE_WORKER_URL` – e.g. `https://gan-hadar-storage.<subdomain>.workers.dev`
+- `STORAGE_SECRET` – same value as the Worker secret
+
+Videos are keyed by the Facebook video id (`fb_<id>`), so the same video pasted via a
+share/reel/watch link is saved only once ("הסרטון כבר קיים בגלריה").
+Videos above 95MB are downloaded but not saved (Workers free-plan body limit is 100MB).

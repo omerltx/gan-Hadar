@@ -15,3 +15,10 @@ export const MSG_PROCESSING = "מעבדים את הקישור…";
 export const MSG_DOWNLOADING = "מורידים את הסרטון…";
 
 export const MSG_SUCCESS = "ההורדה מוכנה!";
+
+export const MSG_ALREADY_EXISTS = "הסרטון כבר קיים בגלריה";
+
+export const MSG_SAVED = "ההורדה מוכנה! הסרטון נשמר בגלריה.";
+
+export const MSG_TOO_BIG_TO_SAVE =
+  "ההורדה מוכנה! הסרטון גדול מדי לשמירה בגלריה (מעל 95MB).";

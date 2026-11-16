@@ -79,7 +79,7 @@ function sanitizeFilename(name: string): string {
 
 export async function probeFacebookVideo(
   url: string,
-): Promise<YtResult<{ title: string }>> {
+): Promise<YtResult<{ title: string; id: string; webpageUrl: string }>> {
   const { stdout, stderr, code } = await runYtDlp(
     [
       "--no-playlist",
@@ -100,8 +100,19 @@ export async function probeFacebookVideo(
   }
 
   try {
-    const meta = JSON.parse(stdout) as { title?: string };
-    return { ok: true, data: { title: meta.title?.trim() || "facebook-video" } };
+    const meta = JSON.parse(stdout) as {
+      title?: string;
+      id?: string | number;
+      webpage_url?: string;
+    };
+    return {
+      ok: true,
+      data: {
+        title: meta.title?.trim() || "facebook-video",
+        id: meta.id !== undefined ? String(meta.id) : "",
+        webpageUrl: meta.webpage_url ?? url,
+      },
+    };
   } catch {
     return { ok: false, reason: "error" };
   }

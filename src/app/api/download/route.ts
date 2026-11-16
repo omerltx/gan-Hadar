@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { NextResponse } from "next/server";
 import { isFacebookUrl, resolveFacebookUrl } from "@/lib/facebook-url";
 import {
@@ -6,6 +7,12 @@ import {
   MSG_RATE_LIMIT,
   MSG_UNSUPPORTED,
 } from "@/lib/messages";
+import {
+  getVideoInfo,
+  keyForVideoId,
+  storageConfigured,
+  uploadVideo,
+} from "@/lib/storage";
 import { checkRateLimit, clientKeyFromHeaders } from "@/lib/rate-limit";
 import { cleanupStaleJobs } from "@/lib/temp-store";
 import { downloadFacebookVideo, probeFacebookVideo } from "@/lib/ytdlp";
@@ -49,9 +56,50 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: MSG_UNSUPPORTED }, { status: 422 });
   }
 
+  const storageOn = storageConfigured();
+  const videoKey = keyForVideoId(
+    probe.data.id ||
+      createHash("sha1").update(probe.data.webpageUrl).digest("hex").slice(0, 32),
+  );
+
+  if (storageOn) {
+    try {
+      const existing = await getVideoInfo(videoKey);
+      if (existing) {
+        return NextResponse.json({
+          ok: true,
+          alreadyExists: true,
+          saved: true,
+          videoKey,
+          title: existing.title,
+          fileName: `${sanitize(existing.title)}.mp4`,
+          downloadUrl: `/api/videos/${videoKey}?download=1`,
+        });
+      }
+    } catch (err) {
+      console.error("storage lookup failed", err);
+    }
+  }
+
   const download = await downloadFacebookVideo(resolvedUrl, probe.data.title);
   if (!download.ok) {
     return NextResponse.json({ error: MSG_UNSUPPORTED }, { status: 422 });
+  }
+
+  let saved = false;
+  let tooBig = false;
+  if (storageOn) {
+    try {
+      saved = await uploadVideo(videoKey, download.data.filePath, {
+        title: probe.data.title,
+        source: /^\d+$/.test(probe.data.id)
+          ? `https://www.facebook.com/watch/?v=${probe.data.id}`
+          : probe.data.webpageUrl || rawUrl,
+      });
+      tooBig = !saved;
+    } catch (err) {
+      console.error("storage upload failed", err);
+    }
   }
 
   const fileName = `${download.data.title}.mp4`;
@@ -59,10 +107,18 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
+    alreadyExists: false,
+    saved,
+    tooBig,
+    videoKey: saved ? videoKey : undefined,
     title: probe.data.title,
     fileName,
     downloadUrl,
   });
+}
+
+function sanitize(name: string): string {
+  return name.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_").slice(0, 120);
 }
 
 export async function GET() {

@@ -1,4 +1,4 @@
-import { DownloadForm } from "@/components/DownloadForm";
+import { HomeClient } from "@/components/HomeClient";
 
 export default function Home() {
   return (
@@ -15,15 +15,7 @@ export default function Home() {
       </header>
 
       <main className="mx-auto w-full max-w-lg px-4 pb-16">
-        <section className="rounded-3xl border border-slate-100 bg-white/90 p-6 shadow-lg shadow-emerald-900/5 backdrop-blur">
-          <DownloadForm />
-        </section>
-
-        <ul className="mt-8 space-y-2 text-sm text-slate-500">
-          <li>• נתמכים קישורי שיתוף, ריל, watch ו־fb.watch</li>
-          <li>• רק תוכן ציבורי שאפשר לצפות בו בלי להתחבר</li>
-          <li>• אנחנו לא שומרים את הסרטון בשרת לאחר ההורדה</li>
-        </ul>
+        <HomeClient />
       </main>
 
       <footer className="pb-8 text-center text-xs text-slate-400">

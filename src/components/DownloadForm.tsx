@@ -2,19 +2,30 @@
 
 import { FormEvent, useState } from "react";
 import {
+  MSG_ALREADY_EXISTS,
   MSG_DOWNLOADING,
   MSG_GENERIC_ERROR,
   MSG_INVALID_URL,
   MSG_PROCESSING,
+  MSG_SAVED,
   MSG_SUCCESS,
+  MSG_TOO_BIG_TO_SAVE,
 } from "@/lib/messages";
 
-type StatusKind = "idle" | "loading" | "success" | "error";
+type StatusKind = "idle" | "loading" | "success" | "exists" | "error";
 
-export function DownloadForm() {
+type Props = {
+  /** Called after a video was saved (or found) in the gallery. */
+  onSaved?: (videoKey: string) => void;
+};
+
+export function DownloadForm({ onSaved }: Props) {
   const [url, setUrl] = useState("");
   const [statusKind, setStatusKind] = useState<StatusKind>("idle");
   const [statusText, setStatusText] = useState("");
+  const [existing, setExisting] = useState<{ key: string; downloadUrl: string } | null>(
+    null,
+  );
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -28,6 +39,7 @@ export function DownloadForm() {
 
     setStatusKind("loading");
     setStatusText(MSG_PROCESSING);
+    setExisting(null);
 
     try {
       const prep = await fetch("/api/download", {
@@ -41,11 +53,23 @@ export function DownloadForm() {
         downloadUrl?: string;
         fileName?: string;
         title?: string;
+        alreadyExists?: boolean;
+        saved?: boolean;
+        tooBig?: boolean;
+        videoKey?: string;
       };
 
       if (!prep.ok) {
         setStatusKind("error");
         setStatusText(data.error ?? MSG_GENERIC_ERROR);
+        return;
+      }
+
+      if (data.alreadyExists && data.videoKey) {
+        setExisting({ key: data.videoKey, downloadUrl: data.downloadUrl ?? "" });
+        setStatusKind("exists");
+        setStatusText(MSG_ALREADY_EXISTS);
+        onSaved?.(data.videoKey);
         return;
       }
 
@@ -69,7 +93,9 @@ export function DownloadForm() {
       URL.revokeObjectURL(objectUrl);
 
       setStatusKind("success");
-      setStatusText(MSG_SUCCESS);
+      setStatusText(data.saved ? MSG_SAVED : data.tooBig ? MSG_TOO_BIG_TO_SAVE : MSG_SUCCESS);
+      setUrl("");
+      if (data.saved && data.videoKey) onSaved?.(data.videoKey);
     } catch {
       setStatusKind("error");
       setStatusText(MSG_GENERIC_ERROR);
@@ -117,6 +143,22 @@ export function DownloadForm() {
           className={`rounded-xl border px-4 py-3 text-sm leading-relaxed ${statusClass}`}
         >
           {statusText}
+          {statusKind === "exists" && existing && (
+            <span className="mt-3 flex flex-wrap gap-2">
+              <a
+                href={existing.downloadUrl}
+                className="rounded-xl bg-emerald-600 px-3 py-1.5 font-semibold text-white hover:bg-emerald-700"
+              >
+                הורדה
+              </a>
+              <a
+                href={`#video-${existing.key}`}
+                className="rounded-xl border border-sky-300 bg-white px-3 py-1.5 font-semibold text-sky-900 hover:bg-sky-100"
+              >
+                לצפייה בגלריה
+              </a>
+            </span>
+          )}
         </p>
       )}
     </form>
