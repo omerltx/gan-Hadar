@@ -43,7 +43,9 @@ docker run --rm -p 43123:43123 gan-hadar
 3. Expose port **43123** (or set `PORT` to the platform’s expected port, e.g. `10000` on Render).
 4. No secrets are required for public Facebook videos.
 
-**Render:** New Web Service → Docker → health check path `/`.
+**Render (GitHub):** Connect the `gan-hadar` repo → **New Blueprint** (or Web Service) → this repo includes `render.yaml` (Docker, free, Frankfurt, health check `/`). Render sets `PORT` automatically; the app listens on `0.0.0.0`.
+
+**Render (manual):** New Web Service → Docker → health check path `/`.
 
 **Railway:** Deploy from Dockerfile; set public port to match `PORT`.
 
